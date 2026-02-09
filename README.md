@@ -26,20 +26,3 @@ A **real-time Kanban board** built with **React** and **Node.js + Socket.IO**. U
 
 ---
 
-## 📂 Project Structure
-
-websocket-kanban-vitest-playwright
-├── backend/ # Node.js + Socket.IO server
-│ ├── server.js # Backend logic
-│ ├── package.json # Backend dependencies
-│
-├── frontend/ # React app
-│ ├── src/
-│ │ ├── components/
-│ │ │ └── KanbanBoard.jsx # Main Kanban Board component
-│ │ ├── tests/
-│ │ │ ├── unit/ # Unit tests (Vitest)
-│ │ │ ├── integration/ # Integration tests (Vitest)
-│ │ │ └── e2e/ # End-to-end tests (Playwright)
-│ ├── package.json
-│ └── README.md # Project guide
