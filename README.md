@@ -2,6 +2,7 @@
 
 A **real-time Kanban board** built with **React** and **Node.js + Socket.IO**. Users can **add, update, move, and delete tasks**, assign **priority & category**, upload attachments, and visualize **task progress in real-time**. This project demonstrates **WebSocket implementation, frontend-backend integration, and testing**.
 
+#website preview
 <img width="1465" height="918" alt="image" src="https://github.com/user-attachments/assets/686f65a1-ecb0-4600-8681-e01c43c46551" />
 
 ## 📌 Features
