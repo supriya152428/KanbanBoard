@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { io } from "socket.io-client";
 
-const socket = io("http://localhost:4001", { autoConnect: false }); // Don't crash if backend is missing
+const socket = io("http://localhost:4001")
 
 const columns = ["To Do", "In Progress", "Done"];
 
