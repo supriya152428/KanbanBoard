@@ -19,7 +19,7 @@ let tasks = [];
 io.on("connection", (socket) => {
   console.log("Client connected");
 
-  // send all tasks initially
+  
   socket.emit("sync:tasks", tasks);
 
   socket.on("task:create", (task) => {
