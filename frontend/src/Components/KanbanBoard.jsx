@@ -1,39 +1,68 @@
 import React, { useEffect, useState } from "react";
 import { io } from "socket.io-client";
 
-
-const socket = io("http://localhost:4001");
+const socket = io("http://localhost:4001", { autoConnect: false }); // Don't crash if backend is missing
 
 const columns = ["To Do", "In Progress", "Done"];
 
+// ✅ Logic functions
+const addTaskLogic = (tasks, newTask) => [...tasks, newTask];
+const deleteTaskLogic = (tasks, id) => tasks.filter((t) => t.id !== id);
+const moveTaskLogic = (tasks, id, newColumn) =>
+  tasks.map((t) => (t.id === id ? { ...t, column: newColumn } : t));
+
 const KanbanBoard = () => {
-  const [tasks, setTasks] = useState([]);
+  const [tasks, setTasks] = useState(() => {
+    // Load from localStorage if backend/socket isn't available
+    const saved = localStorage.getItem("tasks");
+    return saved ? JSON.parse(saved) : [];
+  });
   const [title, setTitle] = useState("");
   const [priority, setPriority] = useState("Low");
   const [category, setCategory] = useState("Feature");
+  const [socketConnected, setSocketConnected] = useState(false);
 
-  
   useEffect(() => {
-    socket.on("sync:tasks", (allTasks) => {
-      setTasks(allTasks);
-    });
+    try {
+      socket.connect(); // Try connecting
+      socket.on("connect", () => {
+        console.log("Socket connected:", socket.id);
+        setSocketConnected(true);
+      });
 
-    socket.on("task:create", (task) => {
-      setTasks((prev) => [...prev, task]);
-    });
+      socket.on("disconnect", () => {
+        console.log("Socket disconnected");
+        setSocketConnected(false);
+      });
 
-    socket.on("task:update", (updated) => {
-      setTasks((prev) =>
-        prev.map((t) => (t.id === updated.id ? updated : t))
+      socket.on("sync:tasks", (allTasks) => setTasks(allTasks));
+      socket.on("task:create", (task) =>
+        setTasks((prev) => addTaskLogic(prev, task))
       );
-    });
+      socket.on("task:delete", (id) =>
+        setTasks((prev) => deleteTaskLogic(prev, id))
+      );
+      socket.on("task:move", ({ id, newColumn }) =>
+        setTasks((prev) => moveTaskLogic(prev, id, newColumn))
+      );
 
-    socket.on("task:delete", (id) => {
-      setTasks((prev) => prev.filter((t) => t.id !== id));
-    });
-
-    return () => socket.off();
+      return () => {
+        socket.off("connect");
+        socket.off("disconnect");
+        socket.off("sync:tasks");
+        socket.off("task:create");
+        socket.off("task:delete");
+        socket.off("task:move");
+      };
+    } catch (err) {
+      console.log("Socket failed, using local state only:", err);
+    }
   }, []);
+
+  // Save to localStorage always
+  useEffect(() => {
+    localStorage.setItem("tasks", JSON.stringify(tasks));
+  }, [tasks]);
 
   const addTask = () => {
     if (!title) return;
@@ -46,21 +75,31 @@ const KanbanBoard = () => {
       category,
     };
 
-    socket.emit("task:create", task);
+    if (socketConnected) {
+      socket.emit("task:create", task);
+    } else {
+      setTasks((prev) => addTaskLogic(prev, task)); // Fallback
+    }
 
     setTitle("");
     setPriority("Low");
     setCategory("Feature");
   };
 
-  
   const deleteTask = (id) => {
-    socket.emit("task:delete", id);
+    if (socketConnected) {
+      socket.emit("task:delete", id);
+    } else {
+      setTasks((prev) => deleteTaskLogic(prev, id)); // Fallback
+    }
   };
 
-  
   const moveTask = (id, newColumn) => {
-    socket.emit("task:move", { id, newColumn });
+    if (socketConnected) {
+      socket.emit("task:move", { id, newColumn });
+    } else {
+      setTasks((prev) => moveTaskLogic(prev, id, newColumn)); // Fallback
+    }
   };
 
   return (
@@ -117,10 +156,7 @@ const KanbanBoard = () => {
               {tasks
                 .filter((task) => task.column === col)
                 .map((task) => (
-                  <div
-                    key={task.id}
-                    className="bg-gray-700 p-3 rounded-lg"
-                  >
+                  <div key={task.id} className="bg-gray-700 p-3 rounded-lg">
                     <h3 className="font-semibold">{task.title}</h3>
 
                     <p className="text-sm text-gray-300">
@@ -129,9 +165,7 @@ const KanbanBoard = () => {
 
                     <select
                       value={task.column}
-                      onChange={(e) =>
-                        moveTask(task.id, e.target.value)
-                      }
+                      onChange={(e) => moveTask(task.id, e.target.value)}
                       className="w-full bg-gray-600 mt-2 rounded px-2 py-1"
                     >
                       {columns.map((c) => (
